@@ -2,8 +2,8 @@ name: Sync with Upstream
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Se ejecuta automáticamente todos los días a medianoche
-  workflow_dispatch: # Permite forzar la actualización manual en cualquier momento
+    - cron: '0 0 * * *' # Se ejecuta diariamente a medianoche
+  workflow_dispatch: # Permite forzar la ejecución manual
 
 jobs:
   sync:
@@ -12,14 +12,18 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Sync upstream changes
-        uses: dabreadman/sync-repo-action@v1.3.0
-        with:
-          source_repo: "storytold/cadcraft"
-          source_branch: "main"
-          target_branch: "main"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge upstream changes
+        run: |
+          git remote add upstream https://github.com/storytold/${{ github.event.repository.name }}.git
+          git fetch upstream
+          git merge upstream/main --allow-unrelated-histories --no-edit || git merge upstream/master --allow-unrelated-histories --no-edit
+          git push origin HEAD
